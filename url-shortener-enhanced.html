@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Shortener - Enhanced</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        input[type="url"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        input[type="url"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            transition: transform 0.2s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result {
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .error {
+            background-color: #fee;
+            color: #c33;
+            border: 1px solid #fcc;
+        }
+        
+        .success {
+            background-color: #efe;
+            color: #363;
+            border: 1px solid #cfc;
+        }
+        
+        .short-url {
+            word-break: break-all;
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .url-list {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .url-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+        }
+        
+        .url-info {
+            flex: 1;
+        }
+        
+        .original-url {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .short-url-display {
+            font-family: monospace;
+            color: #667eea;
+            font-size: 14px;
+        }
+        
+        .url-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-small {
+            padding: 8px 15px;
+            font-size: 12px;
+            width: auto;
+            background: #667eea;
+        }
+        
+        .btn-small:hover {
+            background: #5a6fd8;
+        }
+        
+        .btn-copy {
+            background: #28a745;
+        }
+        
+        .btn-copy:hover {
+            background: #218838;
+        }
+        
+        .btn-test {
+            background: #17a2b8;
+        }
+        
+        .btn-test:hover {
+            background: #138496;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔗 URL Shortener - Enhanced</h1>
+            
+            <form id="shortenForm">
+                <div class="form-group">
+                    <label for="longUrl">Enter URL to shorten:</label>
+                    <input type="url" id="longUrl" name="longUrl" required 
+                           placeholder="https://example.com" 
+                           value="https://example.com">
+                </div>
+                <button type="submit" id="submitBtn">Shorten URL</button>
+            </form>
+            
+            <div id="result" class="result"></div>
+        </div>
+        
+        <div class="url-list">
+            <h2>📋 Your Shortened URLs</h2>
+            <div id="urlList">
+                <p style="text-align: center; color: #666; padding: 20px;">
+                    No URLs shortened yet. Create your first short URL above!
+                </p>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalUrls">0</div>
+                    <div class="stat-label">Total URLs</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="todayUrls">0</div>
+                    <div class="stat-label">Today</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set the base URL for the API
+        const API_BASE_URL = 'https://qm45ni2442.execute-api.ap-south-1.amazonaws.com/dev';
+        
+        // Store URLs in localStorage
+        let shortenedUrls = JSON.parse(localStorage.getItem('shortenedUrls') || '[]');
+        
+        // Update stats
+        function updateStats() {
+            document.getElementById('totalUrls').textContent = shortenedUrls.length;
+            const today = new Date().toDateString();
+            const todayCount = shortenedUrls.filter(url => 
+                new Date(url.createdAt).toDateString() === today
+            ).length;
+            document.getElementById('todayUrls').textContent = todayCount;
+        }
+        
+        // Display URLs
+        function displayUrls() {
+            const urlList = document.getElementById('urlList');
+            
+            if (shortenedUrls.length === 0) {
+                urlList.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No URLs shortened yet. Create your first short URL above!</p>';
+                return;
+            }
+            
+            urlList.innerHTML = shortenedUrls.map((url, index) => `
+                <div class="url-item">
+                    <div class="url-info">
+                        <div class="original-url">${url.originalUrl}</div>
+                        <div class="short-url-display">${API_BASE_URL}/${url.shortId}</div>
+                    </div>
+                    <div class="url-actions">
+                        <button class="btn-small btn-copy" onclick="copyToClipboard('${API_BASE_URL}/${url.shortId}')">
+                            📋 Copy
+                        </button>
+                        <button class="btn-small btn-test" onclick="testUrl('${API_BASE_URL}/${url.shortId}')">
+                            🔗 Test
+                        </button>
+                        <button class="btn-small" onclick="deleteUrl(${index})" style="background: #dc3545;">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Copy to clipboard
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Copied to clipboard!');
+            }).catch(err => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('Copied to clipboard!');
+            });
+        }
+        
+        // Test URL
+        function testUrl(url) {
+            window.open(url, '_blank');
+        }
+        
+        // Delete URL
+        function deleteUrl(index) {
+            if (confirm('Are you sure you want to delete this URL?')) {
+                shortenedUrls.splice(index, 1);
+                localStorage.setItem('shortenedUrls', JSON.stringify(shortenedUrls));
+                displayUrls();
+                updateStats();
+            }
+        }
+        
+        // Form submission
+        document.getElementById('shortenForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const longUrl = document.getElementById('longUrl').value;
+            const resultDiv = document.getElementById('result');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Shortening...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/shorten`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ longUrl: longUrl })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Add to local storage
+                    shortenedUrls.unshift({
+                        shortId: data.shortId,
+                        originalUrl: longUrl,
+                        createdAt: new Date().toISOString()
+                    });
+                    localStorage.setItem('shortenedUrls', JSON.stringify(shortenedUrls));
+                    
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <strong>✅ Short URL created successfully!</strong>
+                        <div class="short-url">
+                            <strong>Short URL:</strong><br>
+                            <a href="${API_BASE_URL}/${data.shortId}" target="_blank">
+                                ${API_BASE_URL}/${data.shortId}
+                            </a>
+                        </div>
+                        <p><strong>Original URL:</strong> ${longUrl}</p>
+                    `;
+                    
+                    // Update display
+                    displayUrls();
+                    updateStats();
+                    
+                    // Clear form
+                    document.getElementById('longUrl').value = '';
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `<strong>❌ Error:</strong> ${data.error || 'Unknown error occurred'}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>❌ Network Error:</strong> ${error.message}`;
+            } finally {
+                // Reset button state
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Shorten URL';
+                resultDiv.style.display = 'block';
+            }
+        });
+        
+        // Initialize
+        displayUrls();
+        updateStats();
+    </script>
+</body>
+</html>

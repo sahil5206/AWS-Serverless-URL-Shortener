@@ -1,53 +1,55 @@
-import boto3, json, os
+import json
+import boto3
+import os
 
-TABLE_NAME = os.environ['TABLE_NAME']
 dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table(TABLE_NAME)
+table = dynamodb.Table(os.environ['TABLE_NAME'])
 
 def lambda_handler(event, context):
-    try:
-        # Get shortId from path parameters
-        short_id = None
-        if event.get('pathParameters'):
-            short_id = event['pathParameters'].get('shortId')
-
-        if not short_id:
-            return {
-                "statusCode": 400,
-                "body": json.dumps({"error": "shortId missing in path"})
-            }
-
-        # Fetch from DynamoDB
-        resp = table.get_item(Key={"shortId": short_id})
-        item = resp.get('Item')
-        if not item:
-            return {
-                "statusCode": 404,
-                "body": json.dumps({"error": "Short URL not found"})
-            }
-
-        long_url = item.get('longUrl')
-
-        # Increment hits counter (optional)
-        try:
-            table.update_item(
-                Key={"shortId": short_id},
-                UpdateExpression="SET hits = if_not_exists(hits, :zero) + :inc",
-                ExpressionAttributeValues={":inc": 1, ":zero": 0}
-            )
-        except Exception:
-            pass
-
-        # Redirect user
+    # CORS headers
+    cors_headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Origin,Accept",
+        "Access-Control-Allow-Methods": "GET,OPTIONS,POST",
+        "Access-Control-Allow-Credentials": "false"
+    }
+    
+    # Handle OPTIONS request for CORS preflight
+    if event.get('httpMethod') == 'OPTIONS':
         return {
-            "statusCode": 301,
+            "statusCode": 200,
+            "headers": cors_headers,
+            "body": json.dumps({"message": "CORS preflight"})
+        }
+    
+    # Handle root path request (no shortId)
+    short_id = event.get('pathParameters', {}).get('shortId')
+    
+    if not short_id:
+        # This is a request to the root path - return simple HTML page
+        return {
+            "statusCode": 200,
             "headers": {
-                "Location": long_url
-            }
+                **cors_headers,
+                "Content-Type": "text/html"
+            },
+            "body": "<html><body><h1>URL Shortener API</h1><p>Use POST /shorten to create short URLs</p><p>Use GET /{shortId} to redirect</p></body></html>"
         }
 
-    except Exception as e:
+    response = table.get_item(Key={"shortId": short_id})
+    item = response.get("Item")
+
+    if not item:
         return {
-            "statusCode": 500,
-            "body": json.dumps({"error": str(e)})
+            "statusCode": 404, 
+            "headers": cors_headers,
+            "body": json.dumps({"error": "Short ID not found"})
         }
+
+    return {
+        "statusCode": 302, 
+        "headers": {
+            **cors_headers,
+            "Location": item['longUrl']
+        }
+    }
