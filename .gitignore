@@ -1,4 +1,36 @@
-echo ".terraform/" >> .gitignore
-git add .gitignore
-git commit -m "Remove large Terraform provider and ignore .terraform"
+# Terraform
 .terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Lambda packages
+*.zip
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test files
+test_lambda.py
