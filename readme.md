@@ -71,32 +71,34 @@ This project implements a modern serverless architecture using AWS services:
 
 ```mermaid
 graph TB
-    subgraph "Client Layer"
-        A[Web Browser] --> B[Frontend Interface]
-        C[Mobile App] --> D[API Client]
+    subgraph Client["Client Layer"]
+        A[Web Browser]
+        B[Frontend Interface]
+        C[Mobile App]
+        D[API Client]
     end
     
-    subgraph "CDN Layer"
+    subgraph CDN["CDN Layer"]
         E[CloudFront Distribution]
     end
     
-    subgraph "API Layer"
+    subgraph API["API Layer"]
         F[API Gateway]
-        G[/shorten - POST]
-        H[/{shortId} - GET]
+        G[POST /shorten]
+        H[GET /shortId]
     end
     
-    subgraph "Compute Layer"
-        I[Lambda: createShortener]
-        J[Lambda: redirectShortener]
+    subgraph Compute["Compute Layer"]
+        I[createShortener Lambda]
+        J[redirectShortener Lambda]
     end
     
-    subgraph "Data Layer"
+    subgraph Data["Data Layer"]
         K[DynamoDB Table]
         L[urlTable]
     end
     
-    subgraph "Infrastructure"
+    subgraph Infra["Infrastructure"]
         M[Terraform]
         N[IAM Roles]
         O[CloudWatch Logs]
@@ -166,7 +168,7 @@ sequenceDiagram
     F-->>U: Display short URL
     
     Note over U,D: URL Redirection Flow
-    U->>A: GET /{shortId}
+    U->>A: GET /shortId
     A->>L2: Invoke Lambda
     L2->>D: Query short ID
     D-->>L2: Return original URL
