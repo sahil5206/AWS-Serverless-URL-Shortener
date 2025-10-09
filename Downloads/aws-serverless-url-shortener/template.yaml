@@ -1,0 +1,53 @@
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Serverless URL Shortener with Python
+
+Resources:
+  CreateShortUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda/create_short_url.lambda_handler
+      Runtime: python3.11
+      CodeUri: .
+      MemorySize: 128
+      Timeout: 10
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: URLShortener
+      Events:
+        CreateUrlApi:
+          Type: Api
+          Properties:
+            Path: /shorten
+            Method: post
+
+  RedirectUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda/redirect_url.lambda_handler
+      Runtime: python3.11
+      CodeUri: .
+      MemorySize: 128
+      Timeout: 10
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: URLShortener
+      Events:
+        RedirectApi:
+          Type: Api
+          Properties:
+            Path: /{shortCode}
+            Method: get
+
+  URLShortenerTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: URLShortener
+      AttributeDefinitions:
+        - AttributeName: short_code
+          AttributeType: S
+      KeySchema:
+        - AttributeName: short_code
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
