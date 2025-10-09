@@ -1,0 +1,51 @@
+# SAM configuration for different environments
+
+version = 0.1
+
+[default]
+[default.global]
+[default.global.parameters]
+stack_name = "url-shortener-dev"
+s3_bucket = ""  # SAM will create a bucket if not specified
+s3_prefix = "url-shortener"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Environment=dev"
+
+[default.build]
+[default.build.parameters]
+cached = true
+parallel = true
+
+[staging]
+[staging.global]
+[staging.global.parameters]
+stack_name = "url-shortener-staging"
+s3_bucket = ""
+s3_prefix = "url-shortener"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Environment=staging"
+
+[staging.build]
+[staging.build.parameters]
+cached = true
+parallel = true
+
+[production]
+[production.global]
+[production.global.parameters]
+stack_name = "url-shortener-prod"
+s3_bucket = ""
+s3_prefix = "url-shortener"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Environment=prod"
+
+[production.build]
+[production.build.parameters]
+cached = true
+parallel = true

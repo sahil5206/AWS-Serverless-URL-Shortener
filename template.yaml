@@ -1,0 +1,211 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'Production-ready serverless URL shortener with analytics, monitoring, and security features'
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+    Runtime: python3.11
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref URLShortenerTable
+        LOG_LEVEL: INFO
+    Tags:
+      Project: URLShortener
+      Environment: !Ref Environment
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,OPTIONS'"
+      AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+      AllowOrigin: "'*'"
+      MaxAge: "'600'"
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+    Description: Environment name
+  
+  DomainName:
+    Type: String
+    Default: ""
+    Description: Custom domain name for the API (optional)
+  
+  CertificateArn:
+    Type: String
+    Default: ""
+    Description: SSL certificate ARN for custom domain (optional)
+
+Resources:
+  # API Gateway
+  URLShortenerApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Environment
+      Description: 'URL Shortener API'
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+        MaxAge: "'600'"
+      Auth:
+        ApiKeyRequired: false
+      GatewayResponses:
+        DEFAULT_4XX:
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: "'*'"
+        DEFAULT_5XX:
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: "'*'"
+
+  # Create Short URL Function
+  CreateShortUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda/create_short_url.lambda_handler
+      CodeUri: .
+      Description: 'Creates short URLs from long URLs'
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: URLShortener
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: "*"
+      Events:
+        CreateUrlApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref URLShortenerApi
+            Path: /shorten
+            Method: post
+
+  # Redirect Function
+  RedirectUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda/redirect_url.lambda_handler
+      CodeUri: .
+      Description: 'Redirects short URLs to original URLs'
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: URLShortener
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: "*"
+      Events:
+        RedirectApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref URLShortenerApi
+            Path: /{shortCode}
+            Method: get
+
+  # Analytics Function
+  GetAnalyticsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda/get_analytics.lambda_handler
+      CodeUri: .
+      Description: 'Retrieves analytics for short URLs'
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: URLShortener
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: "*"
+      Events:
+        AnalyticsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref URLShortenerApi
+            Path: /analytics/{shortCode}
+            Method: get
+
+  # DynamoDB Table
+  URLShortenerTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${Environment}-URLShortener"
+      AttributeDefinitions:
+        - AttributeName: short_code
+          AttributeType: S
+      KeySchema:
+        - AttributeName: short_code
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Project
+          Value: URLShortener
+        - Key: Environment
+          Value: !Ref Environment
+
+  # CloudWatch Log Groups
+  CreateShortUrlLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${CreateShortUrlFunction}"
+      RetentionInDays: 14
+
+  RedirectUrlLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${RedirectUrlFunction}"
+      RetentionInDays: 14
+
+  GetAnalyticsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${GetAnalyticsFunction}"
+      RetentionInDays: 14
+
+Outputs:
+  APIEndpoint:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${URLShortenerApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}"
+    Export:
+      Name: !Sub "${AWS::StackName}-APIEndpoint"
+  
+  CreateShortUrlFunctionArn:
+    Description: "Create Short URL Lambda Function ARN"
+    Value: !GetAtt CreateShortUrlFunction.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-CreateShortUrlFunctionArn"
+  
+  RedirectUrlFunctionArn:
+    Description: "Redirect URL Lambda Function ARN"
+    Value: !GetAtt RedirectUrlFunction.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-RedirectUrlFunctionArn"
+  
+  URLShortenerTableName:
+    Description: "DynamoDB Table Name"
+    Value: !Ref URLShortenerTable
+    Export:
+      Name: !Sub "${AWS::StackName}-URLShortenerTableName"
+  
+  URLShortenerTableArn:
+    Description: "DynamoDB Table ARN"
+    Value: !GetAtt URLShortenerTable.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-URLShortenerTableArn"
